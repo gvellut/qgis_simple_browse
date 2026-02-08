@@ -1,0 +1,12 @@
+[general]
+name=Simple Browse
+description=Single "Google Maps"-like tool: click to Identify, drag to Pan, wheel/double-click to Zoom.
+version=0.1.0
+qgisMinimumVersion=3.22
+author=Guilhem
+email=
+about=Simple Browse provides a single map interaction tool: click acts like Identify Features (using QGIS' current Identify settings), dragging pans like Pan Map, mouse wheel zooms, and double-click zooms in.
+repository=
+tracker=
+category=Map Tools
+icon=icons/simple_browse.svg
