@@ -203,7 +203,7 @@ class SimpleBrowseMapTool(QgsMapTool):
         canvas.refresh()
 
     def wheelEvent(self, event):
-        # Enable wheel zoom while tool is active.
+        # 1. Get Wheel Delta
         try:
             delta_y = event.angleDelta().y()
         except Exception:
@@ -212,14 +212,56 @@ class SimpleBrowseMapTool(QgsMapTool):
         if delta_y == 0:
             return
 
-        steps = int(delta_y / 120) if delta_y % 120 == 0 else (1 if delta_y > 0 else -1)
+        # 2. Define Base Zoom Factor
+        # 1.25 is a standard "smooth" step.
+        # If scaling multiple steps at once, we use power logic.
+        zoom_base = 1.25
 
-        try:
-            if steps > 0:
-                for _ in range(abs(steps)):
-                    self.canvas.zoomIn()
-            else:
-                for _ in range(abs(steps)):
-                    self.canvas.zoomOut()
-        except Exception:
-            pass
+        # Calculate how many "clicks" occurred (usually 120 per click)
+        steps = delta_y / 120
+
+        # Calculate the total scale factor.
+        # Positive steps (Zoom In) -> factor > 1
+        # Negative steps (Zoom Out) -> factor < 1 (e.g. 0.8)
+        if steps > 0:
+            factor = zoom_base**steps
+        else:
+            factor = 1.0 / (zoom_base ** abs(steps))
+
+        # 3. Get Canvas and Dimensions
+        canvas = self.canvas
+        current_extent = canvas.extent()
+        canvas_width = canvas.width()
+        canvas_height = canvas.height()
+
+        # 4. Get Mouse Position (Screen & Map)
+        screen_pos = event.pos()
+
+        # Transform pixels to map coordinates
+        map_point = canvas.getCoordinateTransform().toMapCoordinates(screen_pos)
+
+        # 5. Calculate New Extent Size
+        # We divide by the factor.
+        # If factor is 1.25 (Zoom In), size gets smaller.
+        # If factor is 0.8 (Zoom Out), size gets bigger.
+        new_width = current_extent.width() / factor
+        new_height = current_extent.height() / factor
+
+        # 6. Calculate Screen Ratios
+        # Where is the mouse relative to the screen width/height? (0.0 to 1.0)
+        ratio_x = screen_pos.x() / canvas_width
+        ratio_y = screen_pos.y() / canvas_height
+
+        # 7. Calculate New Extent Coordinates
+        # We position the new extent so the map_point aligns with the screen ratios
+        new_xmin = map_point.x() - (new_width * ratio_x)
+        new_xmax = new_xmin + new_width
+
+        # Y-Axis Logic (Screen Y is inverted relative to Map Y)
+        new_ymax = map_point.y() + (new_height * ratio_y)
+        new_ymin = new_ymax - new_height
+
+        # 8. Apply Extent
+        new_extent = QgsRectangle(new_xmin, new_ymin, new_xmax, new_ymax)
+        canvas.setExtent(new_extent)
+        canvas.refresh()
