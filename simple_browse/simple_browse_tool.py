@@ -165,8 +165,18 @@ class SimpleBrowseMapTool(QgsMapTool):
 
     def canvasDoubleClickEvent(self, event):
         # Double-click zoom in (same feel as one wheel step).
+        # Keep the point under the mouse cursor in the same location after zoom.
         try:
+            # Get the map point under the cursor
+            transform = self.canvas.getCoordinateTransform()
+            center_point = transform.toMapCoordinates(event.pos())
+
+            # Zoom in
             self.canvas.zoomIn()
+
+            # Recenter on the original point under the cursor
+            self.canvas.setCenter(center_point)
+            self.canvas.refresh()
         except Exception:
             pass
 
