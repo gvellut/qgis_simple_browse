@@ -131,6 +131,16 @@ class SimpleBrowseMapTool(QgsMapTool):
                 else:
                     # Case B: Multiple features -> Show the Identify Menu
                     # This pops up the QGIS list widget at the mouse cursor
+                    for res in results:
+                        if res.mLayer:
+                            # TODO change with name : add name to KML or output layer
+
+                            # this changes the Display > Display name in layer
+                            # so not just for this interaction
+                            # instead of setting here : set the display name
+                            # in layer when creating the QGS
+                            res.mLayer.setDisplayExpression('"id"')
+
                     point = release_event.globalPos()
                     selected_results = self.menu.exec(results, point)
 
