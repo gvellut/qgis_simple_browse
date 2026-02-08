@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from qgis.core import Qgis, QgsMessageLog
+from qgis.core import Qgis, QgsMessageLog, QgsRectangle
 from qgis.gui import (
     QgsAttributeDialog,
     QgsIdentifyMenu,
@@ -164,21 +164,43 @@ class SimpleBrowseMapTool(QgsMapTool):
                 widget.close()
 
     def canvasDoubleClickEvent(self, event):
-        # Double-click zoom in (same feel as one wheel step).
-        # Keep the point under the mouse cursor in the same location after zoom.
-        try:
-            # Get the map point under the cursor
-            transform = self.canvas.getCoordinateTransform()
-            center_point = transform.toMapCoordinates(event.pos())
+        # 1. Define the Zoom Factor (1.5x magnification)
+        # We divide the extent size by this factor to zoom in.
+        factor = 1.5
 
-            # Zoom in
-            self.canvas.zoomIn()
+        # 2. Get current canvas, extent, and dimensions
+        canvas = self.canvas
+        current_extent = canvas.extent()
+        canvas_width = canvas.width()
+        canvas_height = canvas.height()
 
-            # Recenter on the original point under the cursor
-            self.canvas.setCenter(center_point)
-            self.canvas.refresh()
-        except Exception:
-            pass
+        # 3. Get mouse position in Pixels and Map Coordinates
+        screen_pos = event.pos()
+        # Convert pixels (QPoint) to map coordinates (QgsPointXY)
+        map_point = canvas.getCoordinateTransform().toMapCoordinates(screen_pos)
+
+        # 4. Calculate the new extent size (Smaller area = Zoom In)
+        new_width = current_extent.width() / factor
+        new_height = current_extent.height() / factor
+
+        # 5. Calculate the relative position of the mouse on the screen (0.0 to 1.0)
+        ratio_x = screen_pos.x() / canvas_width
+        ratio_y = screen_pos.y() / canvas_height
+
+        # 6. Calculate the new Extent coordinates
+        # We shift the new extent so that 'map_point' remains at the same screen ratio
+        new_xmin = map_point.x() - (new_width * ratio_x)
+        new_xmax = new_xmin + new_width
+
+        # Note: Screen Y starts at Top (0), Map Y usually starts at Bottom (Min)
+        # We calculate from the Top (YMax) down.
+        new_ymax = map_point.y() + (new_height * ratio_y)
+        new_ymin = new_ymax - new_height
+
+        # 7. Apply the new extent
+        new_extent = QgsRectangle(new_xmin, new_ymin, new_xmax, new_ymax)
+        canvas.setExtent(new_extent)
+        canvas.refresh()
 
     def wheelEvent(self, event):
         # Enable wheel zoom while tool is active.
