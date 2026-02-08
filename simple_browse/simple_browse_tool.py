@@ -3,7 +3,13 @@ from __future__ import annotations
 import logging
 
 from qgis.core import Qgis, QgsMessageLog
-from qgis.gui import QgsMapTool, QgsMapToolIdentify, QgsMapToolPan
+from qgis.gui import (
+    QgsAttributeDialog,
+    QgsIdentifyMenu,
+    QgsMapTool,
+    QgsMapToolIdentify,
+    QgsMapToolPan,
+)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QApplication
 
@@ -30,6 +36,9 @@ class SimpleBrowseMapTool(QgsMapTool):
 
         self._pan_tool = QgsMapToolPan(self.canvas)
         self._identify_tool = QgsMapToolIdentify(self.canvas)
+        self.menu = QgsIdentifyMenu(self.canvas)
+        self.menu.setAllowMultipleReturn(False)
+        self.menu.setExecWithSingleResult(False)
 
         self._press_event = None
         self._press_pos = None
@@ -115,12 +124,34 @@ class SimpleBrowseMapTool(QgsMapTool):
                     release_event.y(),
                 )
 
-                if results:
+                if len(results) == 1:
                     # Show the identify results dialog
+                    self.close_feature_form()
                     self.iface.openFeatureForm(results[0].mLayer, results[0].mFeature)
+                else:
+                    # Case B: Multiple features -> Show the Identify Menu
+                    # This pops up the QGIS list widget at the mouse cursor
+                    point = release_event.globalPos()
+                    selected_results = self.menu.exec(results, point)
+
+                    # The menu returns a list of selected results (usually just one)
+                    if selected_results:
+                        self.close_feature_form()
+                        self.iface.openFeatureForm(
+                            selected_results[0].mLayer, selected_results[0].mFeature
+                        )
                 return
             except Exception as e:
                 log_info(f"Identify error: {e}", Qgis.Warning)
+
+    def close_feature_form(self):
+        """Closes all open QgsAttributeDialog instances."""
+        for widget in QApplication.allWidgets():
+            if widget.metaObject().className() == "QgsAttributeDialog" or isinstance(
+                widget, QgsAttributeDialog
+            ):
+                log_info(f"Closing existing form: {widget.windowTitle()}")
+                widget.close()
 
     def canvasDoubleClickEvent(self, event):
         # Double-click zoom in (same feel as one wheel step).
