@@ -25,15 +25,11 @@ def log_info(msg: str, level=Qgis.MessageLevel.Info):
 
 
 def _event_pos(event):
-    if hasattr(event, "position"):
-        return event.position().toPoint()
-    return event.pos()
+    return event.position().toPoint()
 
 
 def _event_global_pos(event):
-    if hasattr(event, "globalPosition"):
-        return event.globalPosition().toPoint()
-    return event.globalPos()
+    return event.globalPosition().toPoint()
 
 
 class SimpleBrowseMapTool(QgsMapTool):

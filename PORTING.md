@@ -1,22 +1,25 @@
 # Porting QGIS plugins to QGIS 4
 
-QGIS 4 runs on Qt 6, so most plugin changes are Qt/PyQt compatibility updates plus plugin metadata. Prefer changes that keep one source tree working on both QGIS 3 and QGIS 4 unless you have a reason to drop QGIS 3 support.
+QGIS 4 runs on Qt 6. A QGIS 4-only port should remove Qt 5/QGIS 3 compatibility code instead of carrying fallback imports and event adapters indefinitely.
 
 ## Metadata
 
-- If the plugin should support QGIS 3 and QGIS 4, keep the current `qgisMinimumVersion` and add `qgisMaximumVersion=4.99`.
-- If the plugin should support only QGIS 4, set `qgisMinimumVersion=4.0` and omit `qgisMaximumVersion`.
+- Set `qgisMinimumVersion=4.0`.
+- Set `qgisMaximumVersion=4.99`.
 - Do not add `supportsQt6=True`; QGIS no longer recognizes it for repository compatibility.
 
 ## Imports
 
-- Use the QGIS compatibility shim, not direct `PyQt5` or `PyQt6` imports: `qgis.PyQt`.
-- Check Qt modules that moved in Qt 6. A common example is `QAction`, which moved from `QtWidgets` to `QtGui`.
-- For cross-version code, import from the Qt 6 location first and fall back to the Qt 5 location if needed.
+- Use the QGIS Qt shim, `qgis.PyQt`, instead of direct `PyQt6` imports.
+- Update moved Qt classes to their Qt 6 modules. A common example is `QAction`, which now belongs in `QtGui`:
+
+```python
+from qgis.PyQt.QtGui import QAction
+```
 
 ## Enums
 
-Use scoped enum names. They work with Qt 6 and are generally compatible with recent QGIS 3/PyQt 5 builds.
+Use scoped enum names required by Qt 6 and QGIS 4.
 
 Examples:
 
@@ -28,22 +31,22 @@ Examples:
 
 ## Events and dialogs
 
-- Mouse and wheel event APIs changed in Qt 6. Prefer helpers that use `position()` / `globalPosition()` when available and fall back to `pos()` / `globalPos()` for Qt 5.
-- `exec_()` compatibility aliases may disappear in Qt 6 bindings. Prefer `exec()` for Qt dialogs and menus.
-- When passing positions to QGIS APIs that expect integer pixel `QPoint`s, convert Qt 6 `QPointF` values with `toPoint()`.
+- Replace Qt 5 mouse position APIs with Qt 6 APIs: use `position()` instead of `pos()` and `globalPosition()` instead of `globalPos()`.
+- Convert `QPointF` positions with `toPoint()` when passing integer pixel positions to QGIS APIs.
+- Prefer `exec()` over the old `exec_()` compatibility alias for dialogs and menus.
 
 ## Mechanical checks
 
 - Search for direct Qt imports: `rg "PyQt5|PyQt6"`.
+- Search for compatibility fallbacks that can be removed: `rg "ImportError|hasattr\\(|globalPos\\(|\\.pos\\(|exec_\\("`.
 - Search for unscoped Qt and QGIS enums: `rg "Qt\\.[A-Z]|Qgis\\.[A-Z]|QgsMapLayer\\.[A-Z]|QgsWkbTypes\\.[A-Z]"`.
-- Search for Qt 5 event/dialog APIs: `rg "globalPos\\(|\\.pos\\(|exec_\\("`.
 - Run the QGIS migration helper or Docker checker where possible, then manually review the diff.
 
 ## Validation
 
 - Start QGIS 4 with the plugin enabled and confirm it loads without import errors.
-- Exercise every tool action and dialog path; static checks do not prove PyQGIS runtime compatibility.
-- If maintaining QGIS 3 support, repeat the same smoke test in the oldest QGIS 3 version declared by `qgisMinimumVersion`.
+- Exercise every action, map tool, signal, dialog, and settings path.
+- Check packaging metadata before upload so the plugin appears in the QGIS 4-compatible repository listings.
 
 ## References
 
