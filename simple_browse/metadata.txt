@@ -1,7 +1,7 @@
 [general]
 name=Simple Browse
 description=Single "Google Maps"-like tool: click to Identify, drag to Pan, wheel/double-click to Zoom.
-version=0.1.1
+version=0.2.0
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 author=Guilhem

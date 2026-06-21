@@ -28,6 +28,21 @@ Examples:
 - `Qgis.Warning` -> `Qgis.MessageLevel.Warning`
 - `QgsMapLayer.VectorLayer` -> `QgsMapLayer.LayerType.VectorLayer`
 - `QgsWkbTypes.PolygonGeometry` -> `QgsWkbTypes.GeometryType.PolygonGeometry`
+- APIs that group geometry families may now use `Qgis.GeometryType`, for example `Qgis.GeometryType.Point`, `Qgis.GeometryType.Line`, and `Qgis.GeometryType.Polygon` in `QgsRubberBand`, `QgsGeometry.type()`, and `QgsVectorLayer.geometryType()`.
+
+## Field types
+
+Use `QMetaType.Type` values when creating `QgsField` objects.
+
+Example:
+
+```python
+from qgis.PyQt.QtCore import QMetaType
+
+QgsField("name", QMetaType.Type.QString)
+```
+
+This replaces old `QVariant.String` style type values.
 
 ## Events and dialogs
 
