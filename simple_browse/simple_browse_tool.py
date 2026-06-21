@@ -16,12 +16,24 @@ from qgis.PyQt.QtWidgets import QApplication
 logger = logging.getLogger(__name__)
 
 
-def log_info(msg: str, level=Qgis.Info):
+def log_info(msg: str, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(
         msg,  # The message
         "Simple Browse",  # The "Tag" (this becomes the Tab name)
         level=level,  # The severity level
     )
+
+
+def _event_pos(event):
+    if hasattr(event, "position"):
+        return event.position().toPoint()
+    return event.pos()
+
+
+def _event_global_pos(event):
+    if hasattr(event, "globalPosition"):
+        return event.globalPosition().toPoint()
+    return event.globalPos()
 
 
 class SimpleBrowseMapTool(QgsMapTool):
@@ -48,12 +60,12 @@ class SimpleBrowseMapTool(QgsMapTool):
 
     def activate(self):
         super().activate()
-        self.canvas.setCursor(Qt.ArrowCursor)
+        self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
         self._reset_state()
 
     def deactivate(self):
         self._reset_state()
-        self.canvas.setCursor(Qt.ArrowCursor)
+        self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
         super().deactivate()
 
     def _reset_state(self):
@@ -63,9 +75,9 @@ class SimpleBrowseMapTool(QgsMapTool):
 
     def canvasPressEvent(self, event):
         self._press_event = event
-        self._press_pos = event.pos()
+        self._press_pos = _event_pos(event)
         self._is_panning = False
-        self.canvas.setCursor(Qt.ArrowCursor)
+        self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
 
     def canvasMoveEvent(self, event):
         if self._press_pos is None:
@@ -73,7 +85,7 @@ class SimpleBrowseMapTool(QgsMapTool):
 
         if not self._is_panning:
             if (
-                event.pos() - self._press_pos
+                _event_pos(event) - self._press_pos
             ).manhattanLength() >= self._drag_threshold:
                 self._start_pan(event)
 
@@ -86,7 +98,7 @@ class SimpleBrowseMapTool(QgsMapTool):
 
     def _start_pan(self, event):
         self._is_panning = True
-        self.canvas.setCursor(Qt.ClosedHandCursor)
+        self.canvas.setCursor(Qt.CursorShape.ClosedHandCursor)
 
         # Pan tool expects a press before move.
         try:
@@ -107,7 +119,7 @@ class SimpleBrowseMapTool(QgsMapTool):
             except Exception:
                 pass
 
-            self.canvas.setCursor(Qt.ArrowCursor)
+            self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
             self._reset_state()
             return
 
@@ -118,10 +130,12 @@ class SimpleBrowseMapTool(QgsMapTool):
     def _do_identify(self, release_event):
         if self._identify_tool is not None:
             try:
+                screen_pos = _event_pos(release_event)
+
                 # Use the identify() method to get results
                 results = self._identify_tool.identify(
-                    release_event.x(),
-                    release_event.y(),
+                    screen_pos.x(),
+                    screen_pos.y(),
                 )
 
                 if len(results) == 1:
@@ -131,7 +145,7 @@ class SimpleBrowseMapTool(QgsMapTool):
                 else:
                     # Case B: Multiple features -> Show the Identify Menu
                     # This pops up the QGIS list widget at the mouse cursor
-                    point = release_event.globalPos()
+                    point = _event_global_pos(release_event)
                     selected_results = self.menu.exec(results, point)
 
                     # The menu returns a list of selected results (usually just one)
@@ -142,7 +156,7 @@ class SimpleBrowseMapTool(QgsMapTool):
                         )
                 return
             except Exception as e:
-                log_info(f"Identify error: {e}", Qgis.Warning)
+                log_info(f"Identify error: {e}", Qgis.MessageLevel.Warning)
 
     def close_feature_form(self):
         """Closes all open QgsAttributeDialog instances."""
@@ -165,7 +179,7 @@ class SimpleBrowseMapTool(QgsMapTool):
         canvas_height = canvas.height()
 
         # 3. Get mouse position in Pixels and Map Coordinates
-        screen_pos = event.pos()
+        screen_pos = _event_pos(event)
         # Convert pixels (QPoint) to map coordinates (QgsPointXY)
         map_point = canvas.getCoordinateTransform().toMapCoordinates(screen_pos)
 
@@ -225,7 +239,7 @@ class SimpleBrowseMapTool(QgsMapTool):
         canvas_height = canvas.height()
 
         # 4. Get Mouse Position (Screen & Map)
-        screen_pos = event.pos()
+        screen_pos = _event_pos(event)
 
         # Transform pixels to map coordinates
         map_point = canvas.getCoordinateTransform().toMapCoordinates(screen_pos)
