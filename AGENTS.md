@@ -8,3 +8,14 @@ Single “Google Maps”-like interaction tool:
 - Double click: zoom in (pointer-focused)
 
 The plugin keeps *Simple Browse* active while delegating click/drag handling to QGIS’ built-in Identify/Pan tools (they won’t appear as the active tool).
+
+
+## lint
+
+Run those comments and fix the issues before finishing a session.
+
+```bash
+# Run linting and formatting. Always use --fix.
+ruff check --fix
+ruff format
+```

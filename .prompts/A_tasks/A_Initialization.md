@@ -1,3 +1,5 @@
+Create a new branch qgis4. Inside :
+
 Port the plugin to QGIS 4
 
 see https://plugins.qgis.org/docs/migrate-qgis4

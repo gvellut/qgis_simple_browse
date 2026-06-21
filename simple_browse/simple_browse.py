@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QAction, QIcon
 
 from .simple_browse_tool import SimpleBrowseMapTool
 
